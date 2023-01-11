@@ -228,6 +228,16 @@ button_agendar.place(x=10,y=300)
 
 ######################### REALIZADOS HOJE ############################
 
+quantos_hoje=LabelFrame(frame_tres,borderwidth=5, relief='sunken')
+quantos_hoje.place(x=10,y=10,width=300,height=100)
+
+trabalho_hoje=customtkinter.CTkLabel(quantos_hoje,text="Quantidade de traballhos hoje:",font=("Arial",20))
+trabalho_hoje.place(x=10,y=20)
+
+trabalho_hoje_q=customtkinter.CTkLabel(quantos_hoje,text="34",font=("arial",20))
+trabalho_hoje_q.place(x=10,y=50)
+
+
 tree_realizados_hoje=ttk.Treeview(frame_tres,columns=('Nome','Barbeiro','Trabalho','Data','Hora'),show="headings")
 tree_realizados_hoje.column('Nome',minwidth=0,width=width_five)
 tree_realizados_hoje.column('Barbeiro',minwidth=0,width=width_five)
