@@ -11,7 +11,7 @@ from time import sleep
 
 banco=sqlite3.connect('barber.db', check_same_thread=False)
 cursor=banco.cursor()
-#cursor.execute("CREATE TABLE horarios(nome text,barbeiro text,trabalho text,hora text,data text)")
+#cursor.execute("CREATE TABLE horarios_concluidos(nome text,barbeiro text,trabalho text,hora text,data text)")
 date_cap=datetime.date.today()
 date=date_cap.strftime("%d/%m/%Y")
 
@@ -54,6 +54,14 @@ def agenda_geral():            ################## PREENCHE A AGENDA GERAL
         tree_agenda_geral.insert("","end",values=h)
 
 
+def realizados_hoje():
+    tree_agenda_hoje.delete(*tree_agenda_hoje.get_children())
+    dado=cursor.execute(f"""SELECT * FROM horarios_concluidos WHERE data LIKE '%{date}%'""").fetchall()
+    for r in dado:
+        tree_realizados_hoje.insert("","end",values=r)
+
+
+
 def concluido():    #### FUNÇÃO DO BOTAO CONCLUIDO DO FRAME_UM,DELETA DO BD E DELETA DO TREE VIEW
     concluido=tree_agenda_hoje.selection()[0]
     selecionado=tree_agenda_hoje.item(concluido,'values')
@@ -61,6 +69,12 @@ def concluido():    #### FUNÇÃO DO BOTAO CONCLUIDO DO FRAME_UM,DELETA DO BD E 
     del_barbeiro=selecionado[1]
     del_trabalho=selecionado[2]
     del_hora=selecionado[3]
+    
+    
+    cursor.execute(f"""INSERT INTO horarios_concluidos VALUES('{del_nome}','{del_barbeiro}','{del_trabalho}','{del_hora}','{date}')""")
+    banco.commit()
+
+
     cursor.execute(f"""DELETE FROM horarios WHERE  nome=('{del_nome}') AND barbeiro=('{del_barbeiro}') AND trabalho=('{del_trabalho}') AND hora=('{del_hora}')""")
     banco.commit()
     tree_agenda_hoje.delete(concluido)
@@ -75,14 +89,21 @@ def salvar():     #### SALVA O NOVO HORARIO NO BANCO DE DADOS
     day_save=day.get()
     if nome_save=="" or barber_save=="" or trabalho_save=="" or hour_save=="" or day_save=="":
         messagebox.showerror(title="Erro",message="Um ou mais campos estão vazios!")
-    cursor.execute(f"""INSERT INTO horarios VALUES('{nome_save}','{barber_save}','{trabalho_save}','{hour_save}','{day_save}')""")
-    banco.commit()
+    
+    disponivel=cursor.execute(f"""SELECT * FROM horarios WHERE barbeiro=('{barber_save}') AND hora=('{hour_save}') AND data=('{day_save}')""").fetchall()
+    
+    if len(disponivel)>=1:
+        messagebox.showerror(title="Indisponivel",message=f"O barbeiro {barber_save} ja tem horario marcado dia {day_save} as {hour_save}")
 
-    nome.delete(0,"end")
-    barber.delete(0,"end")
-    hour.delete(0,"end")
-    day.delete(0,"end")
-    trabalho.delete(0,"end")
+    else:
+        cursor.execute(f"""INSERT INTO horarios VALUES('{nome_save}','{barber_save}','{trabalho_save}','{hour_save}','{day_save}')""")
+        banco.commit()
+
+        nome.delete(0,"end")
+        barber.delete(0,"end")
+        hour.delete(0,"end")
+        day.delete(0,"end")
+        trabalho.delete(0,"end")
 
     agenda_geral()
     agendados_hoje()
@@ -205,7 +226,22 @@ button_agendar.place(x=10,y=300)
 
 
 
-#####################################################################
+######################### REALIZADOS HOJE ############################
+
+tree_realizados_hoje=ttk.Treeview(frame_tres,columns=('Nome','Barbeiro','Trabalho','Data','Hora'),show="headings")
+tree_realizados_hoje.column('Nome',minwidth=0,width=width_five)
+tree_realizados_hoje.column('Barbeiro',minwidth=0,width=width_five)
+tree_realizados_hoje.column('Trabalho',minwidth=0,width=width_five)
+tree_realizados_hoje.column('Data',minwidth=0,width=width_five)
+tree_realizados_hoje.column('Hora',minwidth=0,width=width_five)
+tree_realizados_hoje.heading("Nome",text="Nome")
+tree_realizados_hoje.heading("Barbeiro",text="Barbeiro")
+tree_realizados_hoje.heading("Trabalho",text="Trabalho")
+tree_realizados_hoje.heading("Data",text="Data")
+tree_realizados_hoje.heading("Hora",text="Hora")
+tree_realizados_hoje.place(x=20,y=300,height=500)
+
+realizados_hoje()
 
 
 
