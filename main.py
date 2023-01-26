@@ -5,15 +5,16 @@ from tkcalendar import *
 import customtkinter
 import math
 import sqlite3
-import datetime
-from time import sleep
-
+#import datetime
+from datetime import datetime,date
+import pygame
 
 banco=sqlite3.connect('barber.db', check_same_thread=False)
 cursor=banco.cursor()
 #cursor.execute("CREATE TABLE horarios_concluidos(nome text,barbeiro text,trabalho text,hora text,data text)")
-date_cap=datetime.date.today()
-date=date_cap.strftime("%d/%m/%Y")
+data_atual=date.today()
+data= data_atual.strftime("%d/%m/%Y")
+
 
 
 
@@ -42,7 +43,7 @@ def calendar():      ########## FUNÇÃO QUE GERA O CALENDARIO
 
 def agendados_hoje():                ############### PREENCHE A AGENDA DE TRABALHOS DO DIA
     tree_agenda_hoje.delete(*tree_agenda_hoje.get_children())
-    dados=cursor.execute(f"""SELECT nome,barbeiro,trabalho,hora FROM horarios WHERE data LIKE '%{date}%'""").fetchall()
+    dados=cursor.execute(f"""SELECT nome,barbeiro,trabalho,hora FROM horarios WHERE data LIKE '%{data}%'""").fetchall()
     for h in dados:
         tree_agenda_hoje.insert("","end",values=h)
 
@@ -56,13 +57,15 @@ def agenda_geral():            ################## PREENCHE A AGENDA GERAL
 
 def realizados_hoje():
     tree_agenda_hoje.delete(*tree_agenda_hoje.get_children())
-    dado=cursor.execute(f"""SELECT * FROM horarios_concluidos WHERE data LIKE '%{date}%'""").fetchall()
+    tree_realizados_hoje.delete(*tree_realizados_hoje.get_children())
+    dado=cursor.execute(f"""SELECT * FROM horarios_concluidos WHERE data LIKE '%{data}%'""").fetchall()
     for r in dado:
         tree_realizados_hoje.insert("","end",values=r)
 
 
 
 def concluido():    #### FUNÇÃO DO BOTAO CONCLUIDO DO FRAME_UM,DELETA DO BD E DELETA DO TREE VIEW
+    off()
     concluido=tree_agenda_hoje.selection()[0]
     selecionado=tree_agenda_hoje.item(concluido,'values')
     del_nome=selecionado[0]
@@ -71,7 +74,7 @@ def concluido():    #### FUNÇÃO DO BOTAO CONCLUIDO DO FRAME_UM,DELETA DO BD E 
     del_hora=selecionado[3]
     
     
-    cursor.execute(f"""INSERT INTO horarios_concluidos VALUES('{del_nome}','{del_barbeiro}','{del_trabalho}','{del_hora}','{date}')""")
+    cursor.execute(f"""INSERT INTO horarios_concluidos VALUES('{del_nome}','{del_barbeiro}','{del_trabalho}','{del_hora}','{data}')""")
     banco.commit()
 
 
@@ -79,7 +82,8 @@ def concluido():    #### FUNÇÃO DO BOTAO CONCLUIDO DO FRAME_UM,DELETA DO BD E 
     banco.commit()
     tree_agenda_hoje.delete(concluido)
     agenda_geral()
-
+    realizados_hoje()
+    quant()
 
 def salvar():     #### SALVA O NOVO HORARIO NO BANCO DE DADOS
     nome_save=nome.get()
@@ -87,12 +91,13 @@ def salvar():     #### SALVA O NOVO HORARIO NO BANCO DE DADOS
     trabalho_save=trabalho.get()
     hour_save=hour.get()
     day_save=day.get()
+    disponivel=cursor.execute(f"""SELECT * FROM horarios WHERE barbeiro=('{barber_save}') AND hora=('{hour_save}') AND data=('{day_save}')""").fetchall()
     if nome_save=="" or barber_save=="" or trabalho_save=="" or hour_save=="" or day_save=="":
         messagebox.showerror(title="Erro",message="Um ou mais campos estão vazios!")
     
-    disponivel=cursor.execute(f"""SELECT * FROM horarios WHERE barbeiro=('{barber_save}') AND hora=('{hour_save}') AND data=('{day_save}')""").fetchall()
+    #disponivel=cursor.execute(f"""SELECT * FROM horarios WHERE barbeiro=('{barber_save}') AND hora=('{hour_save}') AND data=('{day_save}')""").fetchall()
     
-    if len(disponivel)>=1:
+    elif len(disponivel)>=1:
         messagebox.showerror(title="Indisponivel",message=f"O barbeiro {barber_save} ja tem horario marcado dia {day_save} as {hour_save}")
 
     else:
@@ -122,16 +127,19 @@ def desmarcar():
     
     agenda_geral()
     agendados_hoje()
-
+    off()
 
 
 app= Tk()
 
+lista=("Cabelo","Barba")   ######## lista de trabalhos disponivel
 
-height=app.winfo_screenheight()   ##IDENTIFICA O TAMANHO DA TELA
-width=app.winfo_screenwidth()       ########
+height=app.winfo_screenheight()   ##IDENTIFICA O TAMANHO DA TELA##
+width=app.winfo_screenwidth()    
 width_four=math.floor(width/5)
 width_five=math.floor(width/6.25)
+
+                #########################################################################
 
 
 
@@ -151,6 +159,10 @@ frame_tres=customtkinter.CTkFrame(aba)
 aba.add(frame_tres,text="Realizados-Hoje")
 
 #################################### AGENDADOS - HOJE ######################
+title_hoje=customtkinter.CTkLabel(frame_um,text="Trabalhos de hoje",font=("Arial",18))
+title_hoje.place(x=730,y=10,width=200)
+
+
 tree_agenda_hoje=ttk.Treeview(frame_um,columns=('Nome','Barbeiro','Trabalho','Hora'),show="headings")
 tree_agenda_hoje.column('Nome',minwidth=0,width=width_four)
 tree_agenda_hoje.column('Barbeiro',minwidth=0,width=width_four)
@@ -160,32 +172,35 @@ tree_agenda_hoje.heading("Nome",text="Nome")
 tree_agenda_hoje.heading("Barbeiro",text="Barbeiro")
 tree_agenda_hoje.heading("Trabalho",text="Trabalho")
 tree_agenda_hoje.heading("Hora",text="Hora")
-tree_agenda_hoje.place(x=20,y=20)
+tree_agenda_hoje.place(x=20,y=70)
 agendados_hoje()
 
 concluido=customtkinter.CTkButton(frame_um,text='Concluido',text_color="White",fg_color="Blue",command=concluido)
-concluido.place(x=width-350,y=20)
+concluido.place(x=width-350,y=75)
 
 cancelar=customtkinter.CTkButton(frame_um,text="Cancelar",text_color="White",fg_color="Blue")
-cancelar.place(x=width-350,y=70)
+cancelar.place(x=width-350,y=125)
 
 
 
 
 
 ################################## AGENDA GERAL ##################################################
-tree_agenda_geral=ttk.Treeview(frame_um,columns=('Nome','Barbeiro','Trabalho','Data','Hora'),show="headings")
+title_geral=customtkinter.CTkLabel(frame_um,text="Trabalhos Gerais",font=("Arial",18))
+title_geral.place(x=730,y=360,width=200)
+
+tree_agenda_geral=ttk.Treeview(frame_um,columns=('Nome','Barbeiro','Trabalho','Hora','Data'),show="headings")
 tree_agenda_geral.column('Nome',minwidth=0,width=width_five)
 tree_agenda_geral.column('Barbeiro',minwidth=0,width=width_five)
 tree_agenda_geral.column('Trabalho',minwidth=0,width=width_five)
-tree_agenda_geral.column('Data',minwidth=0,width=width_five)
 tree_agenda_geral.column('Hora',minwidth=0,width=width_five)
+tree_agenda_geral.column('Data',minwidth=0,width=width_five)
 tree_agenda_geral.heading("Nome",text="Nome")
 tree_agenda_geral.heading("Barbeiro",text="Barbeiro")
 tree_agenda_geral.heading("Trabalho",text="Trabalho")
-tree_agenda_geral.heading("Data",text="Data")
 tree_agenda_geral.heading("Hora",text="Hora")
-tree_agenda_geral.place(x=20,y=300,height=500)
+tree_agenda_geral.heading("Data",text="Data")
+tree_agenda_geral.place(x=20,y=400,height=500)
 agenda_geral()
 
 
@@ -194,35 +209,72 @@ geral_desmarcar.place(x=width-350,y=300)
 
 
 
-
+def off():
+    #dia=datetime.now()
+    hour_dois.delete(0,999)
+    atual = datetime.now()
+    dia = atual.strftime("%H:%M")  
+    hour_dois.insert(0,f"{dia}")
+    realizados_hoje()
 
 
 #################################### NOVO ######################
 
-nome_tittle=customtkinter.CTkLabel(frame_dois,text="Nome:")
-nome_tittle.place(x=10,y=8)
-nome=customtkinter.CTkEntry(frame_dois,placeholder_text="Nome do Cliente")
-nome.place(x=10,y=30)
+def quant():    #### ALTERA A QUANTIDADE DE TRABALHO REALIZADOS NO DIA
+    quant=cursor.execute(f"""SELECT * FROM horarios_concluidos WHERE data=('{data}')""").fetchall()
+    v=len(quant)
+    trabalho_hoje_q['text']=v
 
-barber=customtkinter.CTkEntry(frame_dois,placeholder_text="Barbeiro")
-barber.place(x=10,y=60)
+############## AGENDAMENTO ################
 
-hour=customtkinter.CTkEntry(frame_dois,placeholder_text="Hora:")
-hour.place(x=10,y=90)
+agendamento=LabelFrame(frame_dois,borderwidth=5,relief='sunken',background="gray")
+agendamento.place(x=10,y=10,width=400,height=800)
 
-day_button=customtkinter.CTkButton(frame_dois,text="📅",font=("Arial",20),fg_color="transparent",command=calendar)
-day_button.place(x=150,y=118,width=50)
-day=customtkinter.CTkEntry(frame_dois,placeholder_text="Dia/Mes/Ano:")
-day.place(x=10,y=120)
-trabalho=customtkinter.CTkEntry(frame_dois,placeholder_text="Trabalho")
-trabalho.place(x=10,y=150)
+nome_tittle=customtkinter.CTkLabel(agendamento,text="Nome:")
+nome_tittle.place(x=100,y=8)
+nome=customtkinter.CTkEntry(agendamento,placeholder_text="Nome do Cliente")
+nome.place(x=100,y=30)
 
+barber=customtkinter.CTkEntry(agendamento,placeholder_text="Barbeiro")
+barber.place(x=100,y=60)
 
+hour=customtkinter.CTkEntry(agendamento,placeholder_text="Hora:")
+hour.place(x=100,y=90)
 
+day_button=customtkinter.CTkButton(agendamento,text="📅",font=("Arial",20),fg_color="transparent",command=calendar)
+day_button.place(x=250,y=118,width=50)
+day=customtkinter.CTkEntry(agendamento,placeholder_text="Dia/Mes/Ano:")
+day.place(x=100,y=120)
+
+trabalho=customtkinter.CTkComboBox(agendamento,values=lista)
+trabalho.place(x=100,y=150)
 
 
 button_agendar=customtkinter.CTkButton(frame_dois,text="Agendar",command=salvar)
-button_agendar.place(x=10,y=300)
+button_agendar.place(x=110,y=300)
+
+
+################ REALIZADO #############
+
+realizado=LabelFrame(frame_dois,borderwidth=5,relief="sunken",background="gray")
+realizado.place(x=600,y=10,width=400,height=800)
+
+
+nome_dois=customtkinter.CTkEntry(realizado,placeholder_text="Nome")
+nome_dois.place(x=100,y=30)
+
+barber_dois=customtkinter.CTkEntry(realizado,placeholder_text="Barbeiro")
+barber_dois.place(x=100,y=60)
+
+hour_dois=customtkinter.CTkEntry(realizado,placeholder_text="Barbeiro")
+hour_dois.place(x=100,y=90)
+
+trabalho_dois=customtkinter.CTkComboBox(realizado,values=lista)
+trabalho_dois.place(x=100,y=120)
+
+
+agendar_chegada=customtkinter.CTkButton(realizado,text="Feito")
+agendar_chegada.place(x=110,y=300)
 
 
 
@@ -234,11 +286,12 @@ quantos_hoje.place(x=10,y=10,width=300,height=100)
 trabalho_hoje=customtkinter.CTkLabel(quantos_hoje,text="Quantidade de traballhos hoje:",font=("Arial",20))
 trabalho_hoje.place(x=10,y=20)
 
-trabalho_hoje_q=customtkinter.CTkLabel(quantos_hoje,text="34",font=("arial",20))
+#trabalho_hoje_q=customtkinter.CTkLabel(quantos_hoje,text="34",font=("arial",20))
+trabalho_hoje_q=Label(quantos_hoje,text="34",font=("arial",20))
 trabalho_hoje_q.place(x=10,y=50)
 
 
-tree_realizados_hoje=ttk.Treeview(frame_tres,columns=('Nome','Barbeiro','Trabalho','Data','Hora'),show="headings")
+tree_realizados_hoje=ttk.Treeview(frame_tres,columns=('Nome','Barbeiro','Trabalho','Hora','Data'),show="headings")
 tree_realizados_hoje.column('Nome',minwidth=0,width=width_five)
 tree_realizados_hoje.column('Barbeiro',minwidth=0,width=width_five)
 tree_realizados_hoje.column('Trabalho',minwidth=0,width=width_five)
@@ -253,7 +306,10 @@ tree_realizados_hoje.place(x=20,y=300,height=500)
 
 realizados_hoje()
 
-
+off()
+quant()
+agenda_geral()
+agendados_hoje()
 
 
 
