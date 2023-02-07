@@ -63,6 +63,14 @@ def realizados_hoje():
         tree_realizados_hoje.insert("","end",values=r)
 
 
+def pesquisa():
+    tree_agenda_geral.delete(*tree_agenda_geral.get_children())
+    buscar=busca.get()
+    results=cursor.execute(f"""SELECT * FROM horarios WHERE nome LIKE '%{buscar}%'""").fetchall()
+    for b in results:
+        tree_agenda_geral.insert("","end",values=b)
+
+
 
 def concluido():    #### FUNÇÃO DO BOTAO CONCLUIDO DO FRAME_UM,DELETA DO BD E DELETA DO TREE VIEW
     off()
@@ -108,10 +116,23 @@ def salvar():     #### SALVA O NOVO HORARIO NO BANCO DE DADOS
         barber.delete(0,"end")
         hour.delete(0,"end")
         day.delete(0,"end")
-        trabalho.delete(0,"end")
 
     agenda_geral()
     agendados_hoje()
+    print("Hello")
+
+
+def feito():
+    nome=nome_dois.get()
+    barber=barber_dois.get()
+    hora=hour_dois.get()
+    job=trabalho_dois.get()
+    cursor.execute(f"""INSERT INTO horarios_concluidos VALUES('{nome}','{barber}','{job}','{hora}','{data}')""")
+    banco.commit()
+    agenda_geral()
+    agendados_hoje()
+    off()
+    quant()
 
 def desmarcar():
     desmarcado=tree_agenda_geral.selection()[0]
@@ -159,9 +180,12 @@ frame_tres=customtkinter.CTkFrame(aba)
 aba.add(frame_tres,text="Realizados-Hoje")
 
 #################################### AGENDADOS - HOJE ######################
-title_hoje=customtkinter.CTkLabel(frame_um,text="Trabalhos de hoje",font=("Arial",18))
+title_hoje=customtkinter.CTkLabel(frame_um,text="Trabalhos de hoje",font=("Arial",18),fg_color="#32CD32",corner_radius=10)
 title_hoje.place(x=730,y=10,width=200)
 
+style=ttk.Style()
+style.configure("Treeview",background="white")
+style.map("Treeview",background=[("selected","gray")])
 
 tree_agenda_hoje=ttk.Treeview(frame_um,columns=('Nome','Barbeiro','Trabalho','Hora'),show="headings")
 tree_agenda_hoje.column('Nome',minwidth=0,width=width_four)
@@ -186,7 +210,7 @@ cancelar.place(x=width-350,y=125)
 
 
 ################################## AGENDA GERAL ##################################################
-title_geral=customtkinter.CTkLabel(frame_um,text="Trabalhos Gerais",font=("Arial",18))
+title_geral=customtkinter.CTkLabel(frame_um,text="Trabalhos Gerais",font=("Arial",18),fg_color="#00BFFF",corner_radius=10)
 title_geral.place(x=730,y=360,width=200)
 
 tree_agenda_geral=ttk.Treeview(frame_um,columns=('Nome','Barbeiro','Trabalho','Hora','Data'),show="headings")
@@ -204,8 +228,18 @@ tree_agenda_geral.place(x=20,y=400,height=500)
 agenda_geral()
 
 
+busca=customtkinter.CTkEntry(frame_um,placeholder_text="Busca")
+busca.place(x=width-350,y=400)
+busca_button=customtkinter.CTkButton(frame_um,text="Buscar",fg_color="Blue",command=pesquisa)
+busca_button.place(x=width-200,y=400,width=60)
+
+
+
+
 geral_desmarcar=customtkinter.CTkButton(frame_um,text="Desmarcar",text_color="White",fg_color="Blue",command=desmarcar)
-geral_desmarcar.place(x=width-350,y=300)
+geral_desmarcar.place(x=width-350,y=500)
+
+
 
 
 
@@ -246,7 +280,7 @@ day_button.place(x=250,y=118,width=50)
 day=customtkinter.CTkEntry(agendamento,placeholder_text="Dia/Mes/Ano:")
 day.place(x=100,y=120)
 
-trabalho=customtkinter.CTkComboBox(agendamento,values=lista)
+trabalho=customtkinter.CTkComboBox(agendamento,values=lista,button_hover_color="#32CD32",dropdown_hover_color="#D3D3D3")
 trabalho.place(x=100,y=150)
 
 
@@ -269,11 +303,11 @@ barber_dois.place(x=100,y=60)
 hour_dois=customtkinter.CTkEntry(realizado,placeholder_text="Barbeiro")
 hour_dois.place(x=100,y=90)
 
-trabalho_dois=customtkinter.CTkComboBox(realizado,values=lista)
+trabalho_dois=customtkinter.CTkComboBox(realizado,values=lista,button_hover_color="#32CD32",dropdown_hover_color="#D3D3D3")
 trabalho_dois.place(x=100,y=120)
 
 
-agendar_chegada=customtkinter.CTkButton(realizado,text="Feito")
+agendar_chegada=customtkinter.CTkButton(realizado,text="Feito",command=feito)
 agendar_chegada.place(x=110,y=300)
 
 
