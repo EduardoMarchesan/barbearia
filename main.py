@@ -67,8 +67,12 @@ def pesquisa():
     tree_agenda_geral.delete(*tree_agenda_geral.get_children())
     buscar=busca.get()
     results=cursor.execute(f"""SELECT * FROM horarios WHERE nome LIKE '%{buscar}%'""").fetchall()
-    for b in results:
-        tree_agenda_geral.insert("","end",values=b)
+    print(results)
+    if len(results)==0:
+        messagebox.showerror(title="Invalido",message="Nao Encontrado")
+    else:
+        for b in results:
+            tree_agenda_geral.insert("","end",values=b)
 
 
 
